@@ -24,6 +24,11 @@ class ResolveTests(unittest.TestCase):
         releases = [release('0.9.1'), release('0.10.0'), release('0.8.31')]
         self.assertEqual(module.select_release(releases)['tag_name'], 'v0.10.0')
 
+    def test_ignore_android_tag_carrying_older_web_assets(self):
+        android = release('0.8.27')
+        android['tag_name'] = 'v1.1.0'
+        self.assertEqual(module.select_release([android, release()])['tag_name'], 'v0.8.31')
+
     def test_ignore_prerelease_and_draft(self):
         preview, draft = release('9.0.0'), release('8.0.0')
         preview['prerelease'], draft['draft'] = True, True

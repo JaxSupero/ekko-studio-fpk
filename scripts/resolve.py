@@ -37,6 +37,14 @@ def select_release(releases):
               and SEMVER.fullmatch(r.get("tag_name", ""))]
     if not stable:
         raise ValueError("No stable semantic-version Studio release found")
+    # The repository also publishes Android versions (e.g. v1.1.0) carrying
+    # older Web UI assets. Only tags matching their Web UI asset version are
+    # Studio candidates; validate the full asset set/digests in resolve().
+    stable = [r for r in stable if any(
+        a.get('name') == 'hermes-web-ui-' + r['tag_name'].lstrip('v') + '.tar.gz'
+        for a in r.get('assets', []))]
+    if not stable:
+        raise ValueError('No stable Studio release with matching Web UI assets found')
     # Upstream deliberately marks Web UI releases non-latest: do not use releases/latest.
     return max(stable, key=version_key)
 
