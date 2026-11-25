@@ -1,0 +1,1 @@
+[{"stepTitle":"升级说明","items":[{"type":"tips","helpText":"升级前会正常停止本应用，保留持久数据及原版Hermes/runtime。升级后请在应用中心启动并检查健康；原版登录账户admin / 123456必须及时改密。"}]}]

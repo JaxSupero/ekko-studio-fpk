@@ -1,0 +1,129 @@
+name: Build fnOS FPK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-fpk.yml'
+      - 'package/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'package-iteration'
+  workflow_dispatch:
+    inputs:
+      upstream_tag:
+        description: 'Official stable Studio tag; empty selects newest stable release'
+        required: false
+        type: string
+      publish:
+        description: 'Publish verified FPK to this repository Releases'
+        default: true
+        type: boolean
+  schedule:
+    - cron: '23 0 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fnos-fpk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-22.04
+    outputs:
+      should_build: ${{ steps.resolve.outputs.should_build }}
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install test image tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends python3-pil
+      - name: Validate packaging scripts
+        run: |
+          python3 -m compileall -q scripts tests
+          python3 -m unittest discover -s tests -v
+          for file in package/cmd/* package/app/bin/ekko-studio; do
+            if [ -f "$file" ]; then bash -n "$file"; fi
+          done
+      - name: Resolve official Studio release
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_TAG: ${{ inputs.upstream_tag }}
+        run: |
+          args=()
+          if [ "$GITHUB_EVENT_NAME" = schedule ]; then args+=(--check-existing); fi
+          python3 scripts/resolve.py --tag "${UPSTREAM_TAG:-}" --iteration "$(cat package-iteration)" "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resolved-upstream
+          path: build/metadata.json
+          retention-days: 7
+
+  build:
+    needs: resolve
+    if: needs.resolve.outputs.should_build == 'true'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: resolved-upstream
+          path: build
+      - name: Install image tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends python3-pil
+      - name: Prepare verified official Studio and Node runtime
+        run: python3 scripts/build.py prepare --metadata build/metadata.json --stage build/staging
+      - name: Smoke-test native modules and service lifecycle
+        run: python3 scripts/smoke.py --stage build/staging
+      - name: Install checksum-pinned official fnpack
+        run: |
+          curl --fail --location --retry 3 --max-time 120 \
+            https://static2.fnnas.com/fnpack/fnpack-1.2.1-linux-amd64 -o build/fnpack
+          echo '72d2a4095da676b64510b023731a227b369d80f8079bc45ff8a2f802ec0480c1  build/fnpack' | sha256sum -c -
+          chmod 755 build/fnpack
+      - name: Build and verify native FPK
+        run: |
+          python3 scripts/build.py package --metadata build/metadata.json --stage build/staging --output dist --fnpack "$PWD/build/fnpack"
+          python3 scripts/verify.py dist/*.fpk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ekko-studio-fpk-${{ needs.resolve.outputs.version }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish verified release
+        if: github.event_name != 'workflow_dispatch' || inputs.publish
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.resolve.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          name: Ekko Studio fnOS ${{ needs.resolve.outputs.version }}
+          make_latest: true
+          fail_on_unmatched_files: true
+          body: |
+            Native x86_64 fnOS package of the official Ekko Studio Web distribution.
+
+            - Official release assets and Node runtime are checksum-verified before packaging.
+            - Hermes Agent is NOT separately pinned, installed, or auto-updated by this FPK.
+            - Install and update Hermes through the original Studio runtime / Agent management UI.
+            - User configuration, credentials, and downloaded runtimes persist across FPK upgrades.
+            - First login uses the upstream default admin / 123456. Change it immediately; do not expose the default login to the Internet.
+            - CI smoke tests are not a substitute for testing installation on a real fnOS NAS.
+            - Upstream Ekko Studio remains subject to its BSL 1.1 license; this is an unofficial distribution.
+          files: |
+            dist/*.fpk
+            dist/*.sha256
+            dist/build-info.json

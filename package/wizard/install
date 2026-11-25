@@ -1,0 +1,10 @@
+[
+  {
+    "stepTitle": "Ekko Studio 安装须知",
+    "items": [
+      { "type": "tips", "helpText": "原版首次登录账号 admin，密码 123456。安装后立即在界面修改密码，完成改密前不要将8648端口暴露到公网。" },
+      { "type": "tips", "helpText": "本包提供官方Studio与Node.js。首次Agent和Hermes runtime由原版UI联网下载和管理，需可访问上游网络；本包不会额外安装Agent、cron、npm或pip依赖。" },
+      { "type": "tips", "helpText": "服务固定使用TCP 8648，冲突将报错而不会结束其他程序。持久数据保存在应用home目录内的home与studio-data，升级保留；请自行备份。" }
+    ]
+  }
+]

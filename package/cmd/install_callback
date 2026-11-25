@@ -1,0 +1,6 @@
+#!/bin/bash
+. "$(dirname "$0")/common.sh"
+output="$(service_call prepare 2>&1)"
+code=$?
+if [ "$code" -ne 0 ]; then log_error "$output"; exit 1; fi
+exit 0

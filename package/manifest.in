@@ -1,0 +1,16 @@
+appname               = ekko-studio
+version               = @VERSION@
+display_name          = Ekko Studio
+desc                  = Ekko Studio 官方 Web 发行版的非官方 fnOS 原生打包。内置与官方产物匹配的 Node.js 运行时，无需 Docker。Hermes Agent 由原版 Studio 界面的 Agent / Runtime 管理功能安装和更新，本 FPK 不独立追踪或覆盖 Agent。首次访问请立即修改原版默认密码，不要将默认登录入口暴露到公网。
+platform              = x86
+source                = thirdparty
+maintainer            = Ekko Studio upstream
+maintainer_url        = https://github.com/EKKOLearnAI/ekko-studio
+distributor           = Ekko Studio FPK community
+distributor_url       = https://github.com/JaxSupero/ekko-studio-fpk
+os_min_version        = 0.9.27
+desktop_uidir         = ui
+desktop_applaunchname  = ekko-studio.Application
+service_port          = 8648
+checkport             = true
+ctl_stop              = true

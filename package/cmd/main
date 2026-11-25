@@ -1,0 +1,18 @@
+#!/bin/bash
+. "$(dirname "$0")/common.sh"
+case "${1:-}" in
+  start|stop)
+    output="$(service_call "$1" 2>&1)"
+    code=$?
+    if [ "$code" -ne 0 ]; then log_error "$output"; exit 1; fi
+    exit 0
+    ;;
+  status)
+    service_call status >/dev/null 2>&1
+    code=$?
+    [ "$code" -eq 0 ] && exit 0
+    [ "$code" -eq 3 ] && exit 3
+    exit 1
+    ;;
+  *) log_error '用法: main {start|stop|status}'; exit 1 ;;
+esac

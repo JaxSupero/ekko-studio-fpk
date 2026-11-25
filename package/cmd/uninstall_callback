@@ -1,0 +1,6 @@
+#!/bin/bash
+. "$(dirname "$0")/common.sh"
+[ "${wizard_data_action:-keep}" = 'delete' ] || exit 0
+# fnOS removes target before uninstall_callback on some versions; finish guarded
+# deletion while the bundled manager is still available (in uninstall_init).
+exit 0

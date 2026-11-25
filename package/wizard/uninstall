@@ -1,0 +1,15 @@
+[
+  {
+    "stepTitle": "卸载与数据保留",
+    "items": [
+      { "type": "tips", "helpText": "默认保留全部持久数据。选择删除将不可恢复地删除本应用专用home与studio-data，包含账户、凭据、会话及原版下载的runtime；请先备份。不会删除其他目录。" },
+      {
+        "type": "radio", "field": "wizard_data_action", "label": "应用持久数据", "initValue": "keep",
+        "options": [
+          { "label": "保留数据（默认）", "value": "keep" },
+          { "label": "永久删除本应用数据（不可恢复）", "value": "delete" }
+        ]
+      }
+    ]
+  }
+]

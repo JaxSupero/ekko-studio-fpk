@@ -1,0 +1,1 @@
+[{"stepTitle":"运行说明","items":[{"type":"tips","helpText":"固定端口8648。模型、Agent、Hermes/runtime及更新均在原版Studio UI中管理，本包不覆盖这些设置。首次Agent需在UI联网下载。原版默认admin / 123456请立即修改。"}]}]
