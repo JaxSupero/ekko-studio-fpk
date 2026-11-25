@@ -27,6 +27,9 @@ def tar_bytes(entries):
             info = tarfile.TarInfo(name)
             if kind == 'dir':
                 info.type = tarfile.DIRTYPE
+                # TarInfo defaults to 0644, which prevents non-root CI users
+                # traversing directories after safe_extract restores modes.
+                info.mode = 0o755
                 archive.addfile(info)
             elif kind == 'sym':
                 info.type = tarfile.SYMTYPE
