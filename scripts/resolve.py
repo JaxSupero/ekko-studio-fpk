@@ -88,11 +88,30 @@ def resolve(release, iteration):
     }
 
 
+def release_notes(release):
+    """Keep upstream Markdown as data, from the same release as the assets."""
+    body = release.get("body")
+    if not isinstance(body, str) or not body.strip():
+        body = "上游未提供此版本的更新日志，请查看原版 Release。"
+    tag = release["tag_name"]
+    source = "https://github.com/" + UPSTREAM + "/releases/tag/" + tag
+    return body + "\n\n---\n\n## fnOS FPK 打包说明\n\n" + (
+        f"- 原版更新日志来源：[Ekko Studio {tag}]({source})。\n"
+        "- 非官方 Native x86_64 fnOS 分发包；原版 Release 资源与 Node 运行时均经校验和验证。\n"
+        "- 本 FPK 不单独锁定、安装或自动更新 Hermes Agent；请通过原版 Studio 运行时 / Agent 管理界面安装和更新。\n"
+        "- 用户配置、凭据和已下载运行时在 FPK 升级时保留。\n"
+        "- 首次登录使用原版默认账号 admin / 123456，请立即修改密码，勿将默认登录暴露到互联网。\n"
+        "- CI 冒烟测试不等同于真实 fnOS NAS 安装验证。\n"
+        "- 原版 Ekko Studio 仍受 BSL 1.1 许可证约束。\n"
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--tag", default="")
     parser.add_argument("--iteration", type=int, default=1)
     parser.add_argument("--output", default="build/metadata.json")
+    parser.add_argument("--notes-output", default="build/upstream-release-notes.md")
     parser.add_argument("--check-existing", action="store_true")
     args = parser.parse_args()
     if args.iteration < 1:
@@ -118,6 +137,9 @@ def main():
     path = Path(args.output)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(metadata, indent=2) + "\n")
+    notes_path = Path(args.notes_output)
+    notes_path.parent.mkdir(parents=True, exist_ok=True)
+    notes_path.write_text(release_notes(release))
     if os.environ.get("GITHUB_OUTPUT"):
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
             output.write("should_build=" + str(should_build).lower() + "\n")

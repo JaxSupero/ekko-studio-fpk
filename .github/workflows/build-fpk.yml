@@ -62,7 +62,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: resolved-upstream
-          path: build/metadata.json
+          path: |
+            build/metadata.json
+            build/upstream-release-notes.md
           retention-days: 7
 
   build:
@@ -113,16 +115,7 @@ jobs:
           name: Ekko Studio fnOS ${{ needs.resolve.outputs.version }}
           make_latest: true
           fail_on_unmatched_files: true
-          body: |
-            Native x86_64 fnOS package of the official Ekko Studio Web distribution.
-
-            - Official release assets and Node runtime are checksum-verified before packaging.
-            - Hermes Agent is NOT separately pinned, installed, or auto-updated by this FPK.
-            - Install and update Hermes through the original Studio runtime / Agent management UI.
-            - User configuration, credentials, and downloaded runtimes persist across FPK upgrades.
-            - First login uses the upstream default admin / 123456. Change it immediately; do not expose the default login to the Internet.
-            - CI smoke tests are not a substitute for testing installation on a real fnOS NAS.
-            - Upstream Ekko Studio remains subject to its BSL 1.1 license; this is an unofficial distribution.
+          body_path: build/upstream-release-notes.md
           files: |
             dist/*.fpk
             dist/*.sha256
