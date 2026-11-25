@@ -48,6 +48,9 @@ def main():
             subprocess.run(['bash', '-n', str(script)], check=True)
     with tempfile.TemporaryDirectory(prefix='ekko-fpk-smoke-') as temporary:
         root = Path(temporary)
+        # fnOS creates package home/var before lifecycle callbacks run.
+        (root / 'home').mkdir()
+        (root / 'var').mkdir()
         env = {**os.environ, 'TRIM_APPDEST': str(stage / 'app'),
                'TRIM_PKGHOME': str(root / 'home'), 'TRIM_PKGVAR': str(root / 'var'),
                'TRIM_TEMP_LOGFILE': str(root / 'install-errors.log'),
