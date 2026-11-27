@@ -126,17 +126,27 @@ def write_json(path, data):
 
 def make_icons(source, stage):
     from PIL import Image, ImageOps
+    from PIL.PngImagePlugin import PngInfo
+    from fnos_icon import mask_256
+    stage = Path(stage)
+    resampling = getattr(Image, 'Resampling', Image).LANCZOS
     with Image.open(source) as original:
-        image = original.convert('RGBA')
+        # Use the unrounded upstream artwork, not the Linux-specific silhouette.
+        # Retain its previous 7/8 artwork scale; change only the outside contour.
+        artwork = ImageOps.contain(original.convert('RGBA'), (224, 224), resampling)
+        canvas = Image.new('RGBA', (256, 256), (255, 255, 255, 255))
+        canvas.alpha_composite(artwork, ((256 - artwork.width) // 2,
+                                         (256 - artwork.height) // 2))
+        canvas.putalpha(mask_256())
+        pnginfo = PngInfo()
+        pnginfo.add(b'sRGB', b'\x00')
         for size in (64, 256):
-            icon = ImageOps.contain(image, (size, size), getattr(Image, 'Resampling', Image).LANCZOS)
-            canvas = Image.new('RGBA', (size, size), (255, 255, 255, 255))
-            canvas.alpha_composite(icon, ((size - icon.width) // 2, (size - icon.height) // 2))
-            canvas = canvas.convert('RGB')
-            canvas.save(stage / ('ICON.PNG' if size == 64 else 'ICON_256.PNG'), 'PNG')
+            icon = canvas if size == 256 else canvas.resize((size, size), resampling)
+            icon.save(stage / ('ICON.PNG' if size == 64 else 'ICON_256.PNG'),
+                      'PNG', pnginfo=pnginfo)
             path = stage / 'app/ui/images' / ('icon_' + str(size) + '.png')
             path.parent.mkdir(parents=True, exist_ok=True)
-            canvas.save(path, 'PNG')
+            icon.save(path, 'PNG', pnginfo=pnginfo)
 
 
 def prepare(metadata, stage):
@@ -183,8 +193,8 @@ def prepare(metadata, stage):
         license_digest = download(raw + 'LICENSE', license_path, max_bytes=1024**2)
         shutil.copyfile(license_path, tree / 'LICENSE')
         shutil.copyfile(license_path, tree / 'app/studio/LICENSE')
-        icon_path = downloads / 'iconLinux.png'
-        icon_digest = download(raw + 'packages/desktop/build/iconLinux.png', icon_path, max_bytes=20 * 1024**2)
+        icon_path = downloads / 'icon.png'
+        icon_digest = download(raw + 'packages/desktop/build/icon.png', icon_path, max_bytes=20 * 1024**2)
         make_icons(icon_path, tree)
         # Only known executable template locations; tar modes on native modules stay intact.
         for directory in ('cmd', 'app/bin'):
@@ -195,7 +205,7 @@ def prepare(metadata, stage):
         info['node'] = {'url': node_url + node_tar, 'sha256': node_sums[node_tar],
                         'shasums_url': node_url + 'SHASUMS256.txt', 'shasums_sha256': sums_digest}
         info['source_files'] = {'LICENSE': license_digest,
-                                'packages/desktop/build/iconLinux.png': icon_digest}
+                                'packages/desktop/build/icon.png': icon_digest}
         write_json(tree / 'app/build-info.json', info)
         verify_stage(tree, info)
         if stage.exists():

@@ -201,8 +201,12 @@ def verify_stage(stage, metadata=None):
         with Image.open(stage / name) as image:
             require(image.format == 'PNG' and image.size == (size, size), 'Incorrect icon: ' + name)
             image.load()
-            require(image.mode not in ('RGBA', 'LA') or image.getchannel('A').getextrema() == (255, 255),
-                    'Transparent app icon forbidden: ' + name)
+            # fnOS-style rounded silhouettes need transparent outer corners.
+            # Keep the central artwork opaque; a blank/transparent icon is invalid.
+            alpha = image.convert('RGBA').getchannel('A')
+            center = alpha.crop((size // 4, size // 4, size * 3 // 4, size * 3 // 4))
+            require(center.getextrema() == (255, 255),
+                    'Transparent app icon center forbidden: ' + name)
     info = documents['app/build-info.json']
     if metadata:
         require(all(info.get(key) == value for key, value in metadata.items()),
